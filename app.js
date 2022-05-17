@@ -1,13 +1,22 @@
 const express = require('express');
 const mongoose = require('mongoose');
+// const fs = require('fs');
 
 const app = express();
 const { PORT = 3000 } = process.env;
 
-mongoose.connect('mongodb://localhost:27017/mestodb', {
-  useNewUrlParser: true,
-  useCreateIndex: true,
-  useFindAndModify: false,
-});
+mongoose.connect('mongodb://127.0.0.1/mestodb');
 
-app.listen(PORT, () => { console.log('1'); });
+app.use(express.json());
+app.use((req, res, next) => {
+  req.user = {
+    _id: '62827c67f5f0bf762496ac4a',
+  };
+  next();
+});
+app.use('/users', require('./routes/users'));
+app.use('/cards', require('./routes/cards'));
+
+
+
+app.listen(PORT);
