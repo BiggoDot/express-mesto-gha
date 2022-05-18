@@ -3,7 +3,7 @@ const User = require('../models/user');
 module.exports.getUsers = (req, res) => {
   User.find({})
     .then((users) => res.send({ data: users }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(() => res.status(500).send({ message: 'Server error' }));
 };
 
 module.exports.getUserById = (req, res) => {
@@ -15,14 +15,20 @@ module.exports.getUserById = (req, res) => {
       }
       res.send({ data: users });
     })
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(() => res.status(500).send({ message: 'Server error' }));
 };
 
 module.exports.createUsers = (req, res) => {
   const { name, about, avatar } = req.body;
   User.create({ name, about, avatar })
-    .then((user) => res.send({ data: user }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .then((user) => res.status(201).send({ data: user }))
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: 'Data is incorrect' });
+        return;
+      }
+      res.status(500).send({ message: 'Server error' });
+    });
 };
 
 module.exports.updateUserInfo = (req, res) => {
@@ -39,7 +45,13 @@ module.exports.updateUserInfo = (req, res) => {
       }
       res.send({ data: user });
     })
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: 'Data is incorrect' });
+        return;
+      }
+      res.status(500).send({ message: 'Server error' });
+    });
 };
 
 module.exports.updateUserAvatar = (req, res) => {
@@ -56,5 +68,11 @@ module.exports.updateUserAvatar = (req, res) => {
       }
       res.send({ data: user });
     })
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: 'Data is incorrect' });
+        return;
+      }
+      res.status(500).send({ message: 'Server error' });
+    });
 };

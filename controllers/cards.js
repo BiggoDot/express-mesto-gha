@@ -16,15 +16,21 @@ module.exports.deleteCard = (req, res) => {
       }
       res.send({ data: card });
     })
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(() => res.status(500).send({ message: 'Server error' }));
 };
 
 module.exports.createCards = (req, res) => {
   const { name, link } = req.body;
 
   Card.create({ name, link, owner: req.user._id })
-    .then((card) => res.send({ data: card }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .then((card) => res.status(201).send({ data: card }))
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        res.status(400).send({ message: 'Data is incorrect' });
+        return;
+      }
+      res.status(500).send({ message: 'Server error' });
+    });
 };
 
 module.exports.likeCard = (req, res) => {
@@ -40,7 +46,7 @@ module.exports.likeCard = (req, res) => {
       }
       res.send({ data: card });
     })
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(() => res.status(500).send({ message: 'Server error' }));
 };
 
 module.exports.dislikeCard = (req, res) => {
@@ -56,5 +62,5 @@ module.exports.dislikeCard = (req, res) => {
       }
       res.send({ data: card });
     })
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(() => res.status(500).send({ message: 'Server error' }));
 };
