@@ -4,7 +4,7 @@ module.exports.getCards = (req, res) => {
   Card.find({})
     .populate('owner')
     .then((card) => res.send({ data: card }))
-    .catch((err) => res.status(500).send({ message: err.message }));
+    .catch(() => res.status(500).send({ message: 'Server error' }));
 };
 
 module.exports.deleteCard = (req, res) => {
@@ -16,7 +16,13 @@ module.exports.deleteCard = (req, res) => {
       }
       res.send({ data: card });
     })
-    .catch(() => res.status(500).send({ message: 'Server error' }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: 'id is incorrect' });
+        return;
+      }
+      res.status(500).send({ message: 'Server error' });
+    });
 };
 
 module.exports.createCards = (req, res) => {
