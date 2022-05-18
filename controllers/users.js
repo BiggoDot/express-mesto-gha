@@ -15,7 +15,13 @@ module.exports.getUserById = (req, res) => {
       }
       res.send({ data: users });
     })
-    .catch(() => res.status(500).send({ message: 'Server error' }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: 'id is incorrect' });
+        return;
+      }
+      res.status(500).send({ message: 'Server error' });
+    });
 };
 
 module.exports.createUsers = (req, res) => {
