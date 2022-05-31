@@ -1,43 +1,76 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const BadRequestError = require('../errors/BadRequest');
+const NotFoundError = require('../errors/NotFound');
+const ConflictError = require('../errors/Conflict');
+const UnauthorizedError = require('../errors/Unauthorized');
 
-module.exports.getUsers = (req, res) => {
+module.exports.getUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send({ data: users }))
-    .catch(() => res.status(500).send({ message: 'Server error' }));
+    .catch((err) => next(err));
 };
 
-module.exports.getUserById = (req, res) => {
+module.exports.getUserById = (req, res, next) => {
   User.findById(req.params.userId)
     .then((users) => {
       if (!users) {
-        res.status(404).send({ message: 'User is not found' });
-        return;
+        throw new NotFoundError('User is not found');
       }
       res.send({ data: users });
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'id is incorrect' });
+        next(new BadRequestError('id is incorrect'));
         return;
       }
-      res.status(500).send({ message: 'Server error' });
+      next(err);
     });
 };
 
-module.exports.createUsers = (req, res) => {
-  const { name, about, avatar } = req.body;
-  User.create({ name, about, avatar })
-    .then((user) => res.status(201).send({ data: user }))
+module.exports.findUserMe = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((users) => {
+      res.send({ data: users });
+    })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Data is incorrect' });
-        return;
-      }
-      res.status(500).send({ message: 'Server error' });
+      next(err);
     });
 };
 
-module.exports.updateUserInfo = (req, res) => {
+module.exports.createUsers = (req, res, next) => {
+  const {
+    name,
+    about,
+    avatar,
+    email,
+  } = req.body;
+  bcrypt.hash(req.body.password, 10)
+    .then((hash) => {
+      User.create({
+        name,
+        about,
+        avatar,
+        email,
+        password: hash,
+      })
+        .then((user) => res.status(201).send({ data: user }))
+        .catch((err) => {
+          if (err.name === 'ValidationError') {
+            next(new BadRequestError('Data is incorrect'));
+            return;
+          }
+          if (err.code === 11000) {
+            next(new ConflictError('User with this email already exists'));
+            return;
+          }
+          next(err);
+        });
+    });
+};
+
+module.exports.updateUserInfo = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(req.user._id, { name, about }, {
     new: true,
@@ -46,21 +79,20 @@ module.exports.updateUserInfo = (req, res) => {
   })
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: 'User is not found' });
-        return;
+        throw new NotFoundError('User is not found');
       }
       res.send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Data is incorrect' });
+        next(new BadRequestError('Data is incorrect'));
         return;
       }
-      res.status(500).send({ message: 'Server error' });
+      next(err);
     });
 };
 
-module.exports.updateUserAvatar = (req, res) => {
+module.exports.updateUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
   User.findByIdAndUpdate(req.user._id, { avatar }, {
     new: true,
@@ -69,16 +101,33 @@ module.exports.updateUserAvatar = (req, res) => {
   })
     .then((user) => {
       if (!user) {
-        res.status(404).send({ message: 'User is not found' });
-        return;
+        throw new NotFoundError('User is not found');
       }
       res.send({ data: user });
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(400).send({ message: 'Data is incorrect' });
+        next(new BadRequestError('Data is incorrect'));
         return;
       }
-      res.status(500).send({ message: 'Server error' });
+      next(err);
+    });
+};
+
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+  User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, 'super-strong-secret', { expiresIn: '7d' });
+      if (!email || !password) {
+        throw new UnauthorizedError('Email or password are incorrect');
+      }
+      res.cookie('jwt', token, {
+        maxAge: 604800000,
+        httpOnly: true,
+      }).send({ data: token });
+    })
+    .catch((err) => {
+      next(err);
     });
 };
