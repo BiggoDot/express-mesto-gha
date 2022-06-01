@@ -126,15 +126,15 @@ module.exports.login = (req, res, next) => {
   User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, 'super-strong-secret', { expiresIn: '7d' });
-      if (!email || !password) {
-        throw new UnauthorizedError('Email or password are incorrect');
-      }
       res.cookie('jwt', token, {
         maxAge: 604800000,
         httpOnly: true,
       }).send({ data: token });
     })
     .catch((err) => {
+      if (err.name === 'Error') {
+        next(new UnauthorizedError('Email or password are incorrect'));
+      }
       next(err);
     });
 };
