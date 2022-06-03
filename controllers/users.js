@@ -6,6 +6,8 @@ const NotFoundError = require('../errors/NotFound');
 const ConflictError = require('../errors/Conflict');
 const UnauthorizedError = require('../errors/Unauthorized');
 
+const { JWT_SECRET = 'dev-key' } = process.env;
+
 module.exports.getUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send({ data: users }))
@@ -125,7 +127,7 @@ module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
   User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'super-strong-secret', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, { expiresIn: '7d' });
       res.cookie('jwt', token, {
         maxAge: 604800000,
         httpOnly: true,

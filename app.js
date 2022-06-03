@@ -2,6 +2,8 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const { errors, Joi, celebrate } = require('celebrate');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const {
   createUsers,
   login,
@@ -11,11 +13,21 @@ const NotFoundError = require('./errors/NotFound');
 
 const app = express();
 const { PORT = 3000 } = process.env;
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+const limiterRegister = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+});
 
 mongoose.connect('mongodb://127.0.0.1/mestodb');
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(helmet());
+app.use(limiter);
 
 app.post('/signin', celebrate({
   body: Joi.object().keys({
@@ -23,7 +35,7 @@ app.post('/signin', celebrate({
     password: Joi.string().required().min(8),
   }),
 }), login);
-app.post('/signup', celebrate({
+app.post('/signup', limiterRegister, celebrate({
   body: Joi.object().keys({
     email: Joi.string().required().email(),
     password: Joi.string().required().min(8),
