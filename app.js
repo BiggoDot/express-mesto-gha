@@ -17,10 +17,6 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
 });
-const limiterRegister = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-});
 
 mongoose.connect('mongodb://127.0.0.1/mestodb');
 
@@ -35,7 +31,7 @@ app.post('/signin', celebrate({
     password: Joi.string().required().min(8),
   }),
 }), login);
-app.post('/signup', limiterRegister, celebrate({
+app.post('/signup', celebrate({
   body: Joi.object().keys({
     email: Joi.string().required().email(),
     password: Joi.string().required().min(8),
